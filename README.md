@@ -1,4 +1,4 @@
-# Woke tests for Axelar Interchain Token Service
+# Tests for Axelar Interchain Token Service
 
 ## Setup
 
