@@ -3,8 +3,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import DefaultDict
 
-from woke.testing import *
-from woke.testing.fuzzing import *
+from wake.testing import *
+from wake.testing.fuzzing import *
 
 from pytypes.tests.ERC20PermitMock import ERC20PermitMock
 

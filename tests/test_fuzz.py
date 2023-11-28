@@ -5,8 +5,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Callable, DefaultDict, Dict, Tuple, Union
 
-from woke.testing import *
-from woke.testing.fuzzing import *
+from wake.testing import *
+from wake.testing.fuzzing import *
 from pytypes.axelarnetwork.axelargmpsdksolidity.contracts.interfaces.IAxelarExecutable import IAxelarExecutable
 from pytypes.axelarnetwork.axelargmpsdksolidity.contracts.utils.SafeTransfer import TokenTransferFailed
 from pytypes.source.contracts.interchainToken.InterchainToken import InterchainToken

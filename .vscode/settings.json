@@ -1,14 +1,14 @@
 {
-    "woke.compiler.solc.remappings": [
-        "contracts/=source/contracts/"
-    ],
-    "woke.compiler.solc.ignore_paths": [
+    "wake.compiler.solc.exclude_paths": [
         "source/node_modules",
         ".woke-build",
         "venv",
         "lib"
     ],
-    "woke.compiler.solc.include_paths": [
+    "wake.compiler.solc.include_paths": [
         "source/node_modules"
+    ],
+    "wake.compiler.solc.remappings": [
+        "contracts/=source/contracts/"
     ]
 }

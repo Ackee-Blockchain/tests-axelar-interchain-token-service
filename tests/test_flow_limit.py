@@ -1,4 +1,4 @@
-from woke.testing import *
+from wake.testing import *
 
 from pytypes.tests.FlowLimitMock import FlowLimitMock
 
