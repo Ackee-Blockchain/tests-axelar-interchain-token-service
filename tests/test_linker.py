@@ -2,8 +2,8 @@ import logging
 import random
 from typing import Dict
 
-from woke.testing import *
-from woke.testing.fuzzing import *
+from wake.testing import *
+from wake.testing.fuzzing import *
 
 from pytypes.source.contracts.linkerRouter.LinkerRouter import LinkerRouter
 from pytypes.source.contracts.proxies.LinkerRouterProxy import LinkerRouterProxy

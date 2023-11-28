@@ -1,4 +1,4 @@
-from woke.testing import *
+from wake.testing import *
 from pytypes.axelarnetwork.axelarcgpsolidity.contracts.TokenDeployer import TokenDeployer
 from pytypes.axelarnetwork.axelarcgpsolidity.contracts.gasservice.AxelarGasService import AxelarGasService
 
