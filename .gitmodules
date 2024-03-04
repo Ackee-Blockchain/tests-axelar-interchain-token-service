@@ -1,0 +1,3 @@
+[submodule "source-v2"]
+	path = source-v2
+	url = https://github.com/axelarnetwork/interchain-token-service.git
