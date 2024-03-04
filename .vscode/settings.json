@@ -10,5 +10,6 @@
     ],
     "wake.compiler.solc.remappings": [
         "contracts/=source/contracts/"
-    ]
+    ],
+    "python.analysis.typeCheckingMode": "basic"
 }
