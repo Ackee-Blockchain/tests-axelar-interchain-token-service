@@ -1,12 +1,12 @@
 [compiler.solc]
 include_paths = [
-    "source/node_modules",
+    "source-v2/node_modules",
 ]
 remappings = [
-    "contracts/=source/contracts/",
+    "contracts/=source-v2/contracts/",
 ]
 exclude_paths = [
-    "source/node_modules",
+    "source-v2/node_modules"
 ]
 
 [compiler.solc.optimizer]
