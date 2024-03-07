@@ -5,6 +5,7 @@ from typing import Callable, Dict, NamedTuple
 from wake.testing import *
 from wake.testing.fuzzing import *
 from pytypes.axelarnetwork.axelargmpsdksolidity.contracts.interfaces.IAxelarExecutable import IAxelarExecutable
+from pytypes.axelarnetwork.axelargmpsdksolidity.contracts.interfaces.IAxelarExpressExecutable import IAxelarExpressExecutable
 from pytypes.axelarnetwork.axelargmpsdksolidity.contracts.interfaces.IAxelarGateway import IAxelarGateway
 from pytypes.axelarnetwork.axelargmpsdksolidity.contracts.interfaces.IERC20 import IERC20
 from pytypes.axelarnetwork.axelargmpsdksolidity.contracts.test.mocks.MockGateway import MockGateway
@@ -93,7 +94,7 @@ class ItsFuzzTest(FuzzTest):
     def _deploy(self, deployer: Account, chain: Chain):
         create3 = Create3.deploy(chain=chain)
         gw = MockGateway.deploy(chain=chain)
-    
+
         for a in gateway_tokens:
             t = IERC20Named(a, chain=chain)
             gw.deployToken(
@@ -165,6 +166,23 @@ class ItsFuzzTest(FuzzTest):
         for i, e in enumerate(tx.events):
             if isinstance(e, MockGateway.ContractCall):
                 command_id = random_bytes(32)
+                message_type = abi.decode(e.payload, [uint256])
+
+                if message_type == 0 and random.random() < 0.5:
+                    _, token_id, _, _, amount = abi.decode(e.payload, [uint256, bytes32, bytes, bytes, uint256])
+                    t = IERC20Named(self.deployments[other_chain].its.validTokenAddress(token_id), chain=other_chain)
+                    express_executor = random_account(chain=other_chain)
+                    t.approve(self.deployments[other_chain].its, amount, from_=express_executor)
+                    mint_erc20(t, express_executor, amount)
+
+                    if t.address == fee_on_transfer_tokens[0]:
+                        amount -= IStatera(t, chain=other_chain).cut(amount)
+                    self.balances[t][express_executor] += amount
+
+                    IAxelarExpressExecutable(e.destinationContractAddress, chain=other_chain).expressExecute(
+                        command_id, f"chain{tx.chain.chain_id}", str(e.sender), e.payload, from_=express_executor
+                    )
+
                 other_gw.approveContractCall(
                     abi.encode(
                         f"chain{tx.chain.chain_id}", str(e.sender),
@@ -179,6 +197,23 @@ class ItsFuzzTest(FuzzTest):
                 )
             elif isinstance(e, MockGateway.ContractCallWithToken):
                 command_id = random_bytes(32)
+                message_type = abi.decode(e.payload, [uint256])
+
+                if message_type == 0 and random.random() < 0.5:
+                    _, token_id, _, _, amount = abi.decode(e.payload, [uint256, bytes32, bytes, bytes, uint256])
+                    t = IERC20Named(self.deployments[other_chain].its.validTokenAddress(token_id), chain=other_chain)
+                    express_executor = random_account(chain=other_chain)
+                    t.approve(self.deployments[other_chain].its, amount, from_=express_executor)
+                    mint_erc20(t, express_executor, amount)
+
+                    if t.address == fee_on_transfer_tokens[0]:
+                        amount -= IStatera(t, chain=other_chain).cut(amount)
+                    self.balances[t][express_executor] += amount
+
+                    IAxelarExpressExecutable(e.destinationContractAddress, chain=other_chain).expressExecuteWithToken(
+                        command_id, f"chain{tx.chain.chain_id}", str(e.sender), e.payload, e.symbol, e.amount, from_=express_executor
+                    )
+
                 other_gw.approveContractCallWithMint(
                     abi.encode(
                         f"chain{tx.chain.chain_id}", str(e.sender),
@@ -290,11 +325,15 @@ class ItsFuzzTest(FuzzTest):
         t = IERC20(d.its.validTokenAddress(token_id), chain=chain)
         if t not in self.balances:
             self.balances[t] = defaultdict(int)
+            for acc in chain.accounts:
+                self.balances[t][acc] = t.balanceOf(acc)
 
         self.token_ids[other_chain].append(token_id)
         t = IERC20(self.deployments[other_chain].its.validTokenAddress(token_id), chain=other_chain)
         if t not in self.balances:
             self.balances[t] = defaultdict(int)
+            for acc in other_chain.accounts:
+                self.balances[t][acc] = t.balanceOf(acc)
 
         self.interchain_tokens[chain].append(
             InterchainToken(d.its.validTokenAddress(token_id), chain=chain)
@@ -354,11 +393,15 @@ class ItsFuzzTest(FuzzTest):
         t = IERC20(d.its.validTokenAddress(token_id), chain=chain)
         if t not in self.balances:
             self.balances[t] = defaultdict(int)
+            for acc in chain.accounts:
+                self.balances[t][acc] = t.balanceOf(acc)
 
         self.token_ids[other_chain].append(token_id)
         t = IERC20(self.deployments[other_chain].its.validTokenAddress(token_id), chain=other_chain)
         if t not in self.balances:
             self.balances[t] = defaultdict(int)
+            for acc in other_chain.accounts:
+                self.balances[t][acc] = t.balanceOf(acc)
 
         if token_manager_type in {
             InterchainTokenService.TokenManagerType.LOCK_UNLOCK,
@@ -513,7 +556,7 @@ class ItsFuzzTest(FuzzTest):
     def invariant_balances(self):
         for chain, d in self.deployments.items():
             for token_id in self.token_ids[chain]:
-                token = IERC20(d.its.validTokenAddress(token_id), chain=chain)
+                token = IERC20Named(d.its.validTokenAddress(token_id), chain=chain)
                 for a, b in self.balances[token].items():
                     assert token.balanceOf(a) == b
 
