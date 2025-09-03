@@ -46,7 +46,8 @@ class InterchainTokenFuzzTest(FuzzTest):
     _payload_receivers: Dict[Chain, PayloadReceiver]
     _balances: Dict[InterchainToken, DefaultDict[Account, int]]
     _allowances: Dict[InterchainToken, DefaultDict[Account, DefaultDict[Account, int]]]
-    _last_relay_tx: Optional[TransactionAbc]
+    # _last_relay_tx: TransactionAbc | None
+    _last_relay_tx_timestamp: int | None
     _flow_out_amounts: DefaultDict[ITokenManager, DefaultDict[int, int]]
     _flow_in_amounts: DefaultDict[ITokenManager, DefaultDict[int, int]]
 
@@ -192,7 +193,8 @@ class InterchainTokenFuzzTest(FuzzTest):
                     tx = self._execute_with_flow_limit(callable, destination_chain, token_event.tokenId, token_event.amount, 0)
                 else:
                     tx = callable()
-                self._last_relay_tx = tx
+                # self._last_relay_tx = tx
+                self._last_relay_tx_timestamp = tx.block.timestamp
                 self._command_counter += 1
             elif event.topics[0] == MockAxelarGateway.ContractCallWithToken.selector:
                 sender = Abi.decode(["address"], event.topics[1])[0]
@@ -260,7 +262,8 @@ class InterchainTokenFuzzTest(FuzzTest):
                     tx = self._execute_with_flow_limit(callable, destination_chain, token_event.tokenId, token_event.amount, 0)
                 else:
                     tx = callable()
-                self._last_relay_tx = tx
+                # self._last_relay_tx = tx
+                self._last_relay_tx_timestamp = tx.block.timestamp
                 self._command_counter += 1
 
     @staticmethod
@@ -470,6 +473,7 @@ class InterchainTokenFuzzTest(FuzzTest):
     def pre_sequence(self) -> None:
         self._command_counter = 0
         self._last_relay_tx = None
+        self._last_relay_tx_timestamp = None
         chain1.tx_callback = self._relay
         chain2.tx_callback = self._relay
 
@@ -736,8 +740,9 @@ class InterchainTokenFuzzTest(FuzzTest):
                 assert self._payload_receivers[destination_chain].lastPayload() == metadata
 
             self._flow_out_amounts[token_manager][tx.block.timestamp // (6 * 60 * 60)] += amount
-            assert self._last_relay_tx is not None
-            self._flow_in_amounts[destination_token_manager][self._last_relay_tx.block.timestamp // (6 * 60 * 60)] += amount
+            # assert self._last_relay_tx is not None
+            assert self._last_relay_tx_timestamp is not None
+            self._flow_in_amounts[destination_token_manager][self._last_relay_tx_timestamp // (6 * 60 * 60)] += amount
 
             logger.info(f"interchain transfer {amount} {token.symbol()} from {sender.address} chain{token.chain.chain_id} to {recipient.address} chain{destination_chain.chain_id}")
 
@@ -807,6 +812,7 @@ class InterchainTokenFuzzTest(FuzzTest):
             assert e.value == Panic(PanicCodeEnum.UNDERFLOW_OVERFLOW)
         elif token_manager.requiresApproval() and self._allowances[token][sender][token_manager] + amount >= 2 ** 256:
             assert e.value == Panic(PanicCodeEnum.UNDERFLOW_OVERFLOW)
+            assert False
         elif insufficient_balance:
             if token_manager.typeOf() == ITokenManagerType.TokenManagerType.CANONICAL:
                 assert e.value == Panic(PanicCodeEnum.UNDERFLOW_OVERFLOW)
@@ -839,8 +845,9 @@ class InterchainTokenFuzzTest(FuzzTest):
                 assert self._payload_receivers[destination_chain].lastPayload() == metadata
 
             self._flow_out_amounts[token_manager][tx.block.timestamp // (6 * 60 * 60)] += amount
-            assert self._last_relay_tx is not None
-            self._flow_in_amounts[destination_token_manager][self._last_relay_tx.block.timestamp // (6 * 60 * 60)] += amount
+            # assert self._last_relay_tx is not None
+            assert self._last_relay_tx_timestamp is not None
+            self._flow_in_amounts[destination_token_manager][self._last_relay_tx_timestamp // (6 * 60 * 60)] += amount
 
             logger.info(f"interchain transfer {amount} {token.symbol()} from {sender.address} chain{token.chain.chain_id} to {recipient.address} chain{destination_chain.chain_id} by {executor.address}")
 
@@ -919,6 +926,7 @@ class InterchainTokenFuzzTest(FuzzTest):
                 assert e.value == Panic(PanicCodeEnum.UNDERFLOW_OVERFLOW)
             else:
                 assert e.value == TokenTransferFailed()
+
         else:
             assert e.value is None
             if token_manager.typeOf() not in {ITokenManagerType.TokenManagerType.CANONICAL, ITokenManagerType.TokenManagerType.MINT_BURN}:
@@ -941,12 +949,15 @@ class InterchainTokenFuzzTest(FuzzTest):
                 self._balances[destination_token][destination_token_manager] -= amount
             # in other cases tokens are minted
 
+
+
             if send_metadata:
                 assert self._payload_receivers[destination_chain].lastPayload() == metadata
 
             self._flow_out_amounts[token_manager][tx.block.timestamp // (6 * 60 * 60)] += amount
-            assert self._last_relay_tx is not None
-            self._flow_in_amounts[destination_token_manager][self._last_relay_tx.block.timestamp // (6 * 60 * 60)] += amount
+            # assert self._last_relay_tx is not None
+            assert self._last_relay_tx_timestamp is not None
+            self._flow_in_amounts[destination_token_manager][self._last_relay_tx_timestamp // (6 * 60 * 60)] += amount
 
             logger.info(f"interchain send token {amount} {token.symbol()} from {sender.address} chain{token.chain.chain_id} to {recipient.address} chain{destination_chain.chain_id}")
 

@@ -11,3 +11,7 @@ exclude_paths = [
 
 [compiler.solc.optimizer]
 enabled = true
+
+
+[testing]
+cmd="revm"
